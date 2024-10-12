@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sort"
 	"syscall"
 	"time"
 )
@@ -47,11 +48,29 @@ func endTime(name string) {
 
 func dumpProfiles() {
 	println("---DUMP PROFILE---")
-	for name, p := range profiles {
-		// format time pretty
-		time := time.Duration(p.Time).String()
-		println(name, time, p.Count)
-	}
+		// convert to per count time and name pair
+		ptpair := []struct {
+			Name string
+			Time int64
+		}{}
+		for name, p := range profiles {
+			ptpair = append(ptpair, struct {
+				Name string
+				Time int64
+			}{name, p.Time / p.Count})
+		}
+		// sort by time using sort.Slice
+		sort.Slice(ptpair, func(i, j int) bool {
+			return ptpair[i].Time > ptpair[j].Time
+		})
+
+		// dump ptpair with profiles
+		for _, pt := range ptpair {
+			p := profiles[pt.Name]
+			perTime := time.Duration(pt.Time).String()
+			totalTime := time.Duration(p.Time).String()
+			println(pt.Name, perTime, totalTime, p.Count)
+		}
 }
 
 func registerProfSignalHandler() {
