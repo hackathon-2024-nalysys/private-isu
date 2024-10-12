@@ -20,7 +20,7 @@ jobs:
       - name: build
         run: |-
           cd webapp/golang
-          go build .
+          go build -o app .
       - name: deploy
         run: |-
           mkdir -p ~/.ssh
