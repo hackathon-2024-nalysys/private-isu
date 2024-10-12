@@ -607,6 +607,8 @@ func main() {
 		dbname,
 	)
 
+	registerProfSignalHandler()
+
 	db, err = sqlx.Open("mysql", dsn)
 	if err != nil {
 		log.Fatalf("Failed to connect to DB: %s.", err.Error())
