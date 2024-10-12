@@ -26,6 +26,7 @@ jobs:
           cd webapp/golang
           mkdir -p ~/.ssh
           echo "${{ secrets.PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
           ssh -o "StrictHostKeyChecking no" isucon@35.77.23.53 rm -rf ~/private_isu/webapp/golang
           scp -o "StrictHostKeyChecking no" -r webapp/golang isucon@35.77.23.53:~/private_isu/webapp/golang
           ssh -o "StrictHostKeyChecking no" ubuntu@35.77.23.53 sudo systemctl restart isu-go
