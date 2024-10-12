@@ -15,11 +15,18 @@ type Profile struct {
 }
 
 // ここにためる
-var profiles = map[string]Profile{}
+var profiles = map[string]*Profile{}
 
 // はかりはじめる
 func startTime(name string) {
 	p := profiles[name]
+
+	if p == nil {
+		p = &Profile{}
+		profiles[name] = p
+	}
+	 
+	println("start", name)
 	// get current time
 	p.LastStart = time.Now().UnixNano()
 }
@@ -27,12 +34,19 @@ func startTime(name string) {
 // はかりおわる
 func endTime(name string) {
 	p := profiles[name]
+
+	if p == nil {
+		p = &Profile{}
+		profiles[name] = p
+	}
+
 	// get current time
 	p.Time += time.Now().UnixNano() - p.LastStart
 	p.Count++
 }
 
 func dumpProfiles() {
+	println("---DUMP PROFILE---")
 	for name, p := range profiles {
 		// format time pretty
 		time := time.Duration(p.Time).String()
@@ -56,7 +70,7 @@ func registerProfSignalHandler() {
 		signal.Notify(c, syscall.SIGUSR2)
 		for {
 			<-c
-			profiles = map[string]Profile{}
+			profiles = map[string]*Profile{}
 		}
 	}()
 }

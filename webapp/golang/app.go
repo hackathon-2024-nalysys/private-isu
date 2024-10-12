@@ -617,6 +617,8 @@ func main() {
 
 	r := chi.NewRouter()
 
+	r.Use(ProfMiddleware)
+
 	r.Get("/initialize", getInitialize)
 	r.Get("/login", getLogin)
 	r.Post("/login", postLogin)
