@@ -98,7 +98,6 @@ func registerProfSignalHandler() {
 // contextに値をセットするmiddlewareの例
 func ProfMiddleware(next http.Handler) http.Handler {
   return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    // ctx := context.WithValue(r.Context(), "user", "123")
 		startTime(r.URL.Path)
     next.ServeHTTP(w, r)
 		endTime(r.URL.Path)

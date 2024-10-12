@@ -60,7 +60,7 @@ type Comment struct {
 	UserID    int       `db:"user_id"`
 	Comment   string    `db:"comment"`
 	CreatedAt time.Time `db:"created_at"`
-	User      User
+	User      User      `db:"user"`
 }
 
 func init() {
@@ -110,6 +110,53 @@ func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
 
 func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, error) {
 	var posts []Post
+	var query string
+
+	if !allComments {
+		query = "SELECT c.*, u.id AS `user.id`, u.account_name AS `user.account_name`, u.del_flg AS `user.del_flg`, u.created_at AS `user.created_at`, u.authority AS `user.authority`" +
+		"FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY c.post_id ORDER BY c.created_at DESC) as rn FROM comments c WHERE c.post_id IN (?)) AS c JOIN users u ON c.user_id = u.id WHERE c.rn <= 3"
+	} else {
+		query = "SELECT c.*, u.id AS `user.id`, u.account_name AS `user.account_name`, u.del_flg AS `user.del_flg`, u.created_at AS `user.created_at`, u.authority AS `user.authority`" +
+		"FROM comments c JOIN users u ON c.user_id = u.id WHERE c.post_id IN (?)"
+	}
+
+
+	postIDs := make([]int, len(results))
+	for i, p := range results {
+		postIDs[i] = p.ID
+	}
+
+	sql,params,err:= sqlx.In(query, postIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	var comments []Comment
+	err =	db.Select(&comments, sql, params...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// create map of posts
+	postMap := make(map[int]*Post)
+	for i, p := range results {
+		postMap[p.ID] = &results[i]
+	}
+
+	for _, c := range comments {
+		postMap[c.PostID].Comments = append(postMap[c.PostID].Comments, c)
+	}	
+
+	for _, p := range postMap {
+		p.CSRFToken = csrfToken
+		// reverse
+		for i, j := 0, len(p.Comments)-1; i < j; i, j = i+1, j-1 {
+			p.Comments[i], p.Comments[j] = p.Comments[j], p.Comments[i]
+		}
+	}
+
+
 
 	for _, p := range results {
 		err := db.Get(&p.CommentCount, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", p.ID)
