@@ -1,0 +1,30 @@
+name: CD to AWS
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: build
+        run: |-
+          cd webapp/golang
+          go build .
+      - name: deploy
+        run: |-
+          cd webapp/golang
+          echo "${{ secrets.PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          ssh isucon@35.77.23.53 rm -rf ~/private_isu/webapp/golang
+          scp -r webapp/golang isucon@35.77.23.53:~/private_isu/webapp/golang
+          ssh ubuntu@35.77.23.53 sudo systemctl restart isu-go
