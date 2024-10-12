@@ -87,7 +87,6 @@ func dbInitialize() {
 	}
 }
 
-
 // 今回のGo実装では言語側のエスケープの仕組みが使えないのでOSコマンドインジェクション対策できない
 // 取り急ぎPHPのescapeshellarg関数を参考に自前で実装
 // cf: http://jp2.php.net/manual/ja/function.escapeshellarg.php
@@ -114,25 +113,24 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 	if !allComments {
 		query = "SELECT c.*, u.id AS `user.id`, u.account_name AS `user.account_name`, u.del_flg AS `user.del_flg`, u.created_at AS `user.created_at`, u.authority AS `user.authority`" +
-		"FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY c.post_id ORDER BY c.created_at DESC) as rn FROM comments c WHERE c.post_id IN (?)) AS c JOIN users u ON c.user_id = u.id WHERE c.rn <= 3"
+			"FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY c.post_id ORDER BY c.created_at DESC) as rn FROM comments c WHERE c.post_id IN (?)) AS c JOIN users u ON c.user_id = u.id WHERE c.rn <= 3"
 	} else {
 		query = "SELECT c.*, u.id AS `user.id`, u.account_name AS `user.account_name`, u.del_flg AS `user.del_flg`, u.created_at AS `user.created_at`, u.authority AS `user.authority`" +
-		"FROM comments c JOIN users u ON c.user_id = u.id WHERE c.post_id IN (?)"
+			"FROM comments c JOIN users u ON c.user_id = u.id WHERE c.post_id IN (?)"
 	}
-
 
 	postIDs := make([]int, len(results))
 	for i, p := range results {
 		postIDs[i] = p.ID
 	}
 
-	sql,params,err:= sqlx.In(query, postIDs)
+	sql, params, err := sqlx.In(query, postIDs)
 	if err != nil {
 		return nil, err
 	}
 
 	var comments []Comment
-	err =	db.Select(&comments, sql, params...)
+	err = db.Select(&comments, sql, params...)
 
 	if err != nil {
 		return nil, err
@@ -146,7 +144,7 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 	for _, c := range comments {
 		postMap[c.PostID].Comments = append(postMap[c.PostID].Comments, c)
-	}	
+	}
 
 	for _, p := range postMap {
 		p.CSRFToken = csrfToken
@@ -155,54 +153,35 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 			p.Comments[i], p.Comments[j] = p.Comments[j], p.Comments[i]
 		}
 	}
+	userIds := make([]int, len(results))
+	for i, p := range results {
+		userIds[i] = p.UserID
+	}
+	userQuery := "SELECT * FROM `users` WHERE `id` IN (?)"
+	sql, params, err = sqlx.In(userQuery, userIds)
+	if err != nil {
+		return nil, err
+	}
 
+	var users []User
+	err = db.Select(&users, sql, params...)
+	if err != nil {
+		return nil, err
+	}
+	userMap := make(map[int]*User)
+	for i, u := range users {
+		userMap[u.ID] = &users[i]
+	}
 
+	for _, p := range postMap {
+		p.User = *userMap[p.UserID]
+	}
 
 	for _, p := range results {
-		err := db.Get(&p.CommentCount, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", p.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
-		if !allComments {
-			query += " LIMIT 3"
-		}
-		var comments []Comment
-		err = db.Select(&comments, query, p.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		for i := 0; i < len(comments); i++ {
-			err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// reverse
-		for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
-			comments[i], comments[j] = comments[j], comments[i]
-		}
-
-		p.Comments = comments
-
-		err = db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
-		if err != nil {
-			return nil, err
-		}
-
-		p.CSRFToken = csrfToken
-
 		if p.User.DelFlg == 0 {
 			posts = append(posts, p)
 		}
-		if len(posts) >= postsPerPage {
-			break
-		}
 	}
-
 	return posts, nil
 }
 
@@ -218,7 +197,6 @@ func imageURL(p Post) string {
 
 	return "/image/" + strconv.Itoa(p.ID) + ext
 }
-
 
 func getCSRFToken(r *http.Request) string {
 	session := getSession(r)
