@@ -112,11 +112,11 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 	var query string
 
 	if !allComments {
-		query = "SELECT c.*, u.id AS `user.id`, u.account_name AS `user.account_name`, u.del_flg AS `user.del_flg`, u.created_at AS `user.created_at`, u.authority AS `user.authority`" +
-			"FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY c.post_id ORDER BY c.created_at DESC) as rn FROM comments c WHERE c.post_id IN (?)) AS c JOIN users u ON c.user_id = u.id WHERE c.rn <= 3"
+		query = "SELECT c.id, c.post_id, c.user_id, c.comment, c.created_at, u.id AS `user.id`, u.account_name AS `user.account_name`, u.del_flg AS `user.del_flg`, u.created_at AS `user.created_at`, u.authority AS `user.authority`" +
+			" FROM (SELECT id, post_id, user_id, comment, created_at, ROW_NUMBER() OVER (PARTITION BY c.post_id ORDER BY c.created_at DESC) as rn FROM comments c WHERE c.post_id IN (?)) AS c JOIN users u ON c.user_id = u.id WHERE c.rn <= 3"
 	} else {
-		query = "SELECT c.*, u.id AS `user.id`, u.account_name AS `user.account_name`, u.del_flg AS `user.del_flg`, u.created_at AS `user.created_at`, u.authority AS `user.authority`" +
-			"FROM comments c JOIN users u ON c.user_id = u.id WHERE c.post_id IN (?)"
+		query = "SELECT c.id, c.post_id, c.user_id, c.comment, c.created_at, u.id AS `user.id`, u.account_name AS `user.account_name`, u.del_flg AS `user.del_flg`, u.created_at AS `user.created_at`, u.authority AS `user.authority`" +
+			" FROM comments c JOIN users u ON c.user_id = u.id WHERE c.post_id IN (?)"
 	}
 
 	postIDs := make([]int, len(results))
