@@ -9,6 +9,7 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gorilla/sessions v1.4.0
 	github.com/jmoiron/sqlx v1.4.0
+	github.com/valyala/quicktemplate v1.8.0
 )
 
 require (
@@ -16,5 +17,4 @@ require (
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/memcachier/mc/v3 v3.0.3 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/quicktemplate v1.8.0 // indirect
 )

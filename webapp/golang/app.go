@@ -172,7 +172,6 @@ func imageURL(mime string, id int) string {
 	return "/image/" + strconv.Itoa(id) + ext
 }
 
-
 func getCSRFToken(r *http.Request) string {
 	session := getSession(r)
 	csrfToken, ok := session.Values["csrf_token"]
@@ -258,7 +257,9 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 	}
 
 	me := getSessionUser(r)
-	templates.WriteLayout(w, func(w *quicktemplate.Writer) { templates.StreamUserPage(w, user, postCount, commentCount, commentedCount, posts) }, me)
+	templates.WriteLayout(w, func(w *quicktemplate.Writer) {
+		templates.StreamUserPage(w, user, postCount, commentCount, commentedCount, posts)
+	}, me)
 }
 
 func getPosts(w http.ResponseWriter, r *http.Request) {
@@ -389,9 +390,6 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-
-
-
 
 	query := "INSERT INTO `posts` (`user_id`, `mime`, `body`) VALUES (?,?,?)"
 	result, err := db.Exec(

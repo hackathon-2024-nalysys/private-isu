@@ -17,7 +17,7 @@ type Post struct {
 	Body         string    `db:"body"`
 	Mime         string    `db:"mime"`
 	CreatedAt    time.Time `db:"created_at"`
-	ImageURL 	   string
+	ImageURL     string
 	CommentCount int
 	Comments     []Comment
 	User         User

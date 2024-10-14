@@ -88,7 +88,7 @@ func getLogin(w http.ResponseWriter, r *http.Request) {
 
 	templates.WriteLayout(w, func(qw *quicktemplate.Writer) {
 		templates.StreamLoginPage(qw, getFlash(w, r, "notice"))
-	},me)
+	}, me)
 }
 
 func postLogin(w http.ResponseWriter, r *http.Request) {
@@ -123,7 +123,7 @@ func getRegister(w http.ResponseWriter, r *http.Request) {
 
 	templates.WriteLayout(w, func(qw *quicktemplate.Writer) {
 		templates.StreamRegisterPage(qw, getFlash(w, r, "notice"))
-	},types.User{} )
+	}, types.User{})
 }
 
 func postRegister(w http.ResponseWriter, r *http.Request) {
