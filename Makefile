@@ -16,6 +16,7 @@ benchmarker/userdata/img: benchmarker/userdata/img.zip
 	unzip -qq -o img.zip
 
 bench:
+	ssh -i ~/.ssh/private-isu.pem ubuntu@$(WORKER) sudo killall -USR2 app && \
 	./bench.sh
 
 connect:

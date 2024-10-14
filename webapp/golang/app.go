@@ -270,19 +270,12 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 
 	commentedCount := 0
 	if postCount > 0 {
-		s := []string{}
-		for range postIDs {
-			s = append(s, "?")
+		sql, params, err := sqlx.In("SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN (?)", postIDs)
+		if err != nil {
+			log.Print(err)
+			return
 		}
-		placeholder := strings.Join(s, ", ")
-
-		// convert []int -> []interface{}
-		args := make([]interface{}, len(postIDs))
-		for i, v := range postIDs {
-			args[i] = v
-		}
-
-		err = db.Get(&commentedCount, "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ("+placeholder+")", args...)
+		err = db.Get(&commentedCount, sql, params...)
 		if err != nil {
 			log.Print(err)
 			return
