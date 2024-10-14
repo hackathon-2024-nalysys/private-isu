@@ -23,7 +23,7 @@ connect:
 	ssh -i ~/.ssh/private-isu.pem isucon@$(WORKER)
 
 proxy:
-	ssh -i ~/.ssh/private-isu.pem -L 3306:localhost:3306 -L 11211:localhost:11211 ubuntu@$(WORKER)
+	ssh -i ~/.ssh/private-isu.pem -L 1080:localhost:1080 -L 3306:localhost:3306 -L 11211:localhost:11211 ubuntu@$(WORKER)
 
 dump:
 	killall -USR1 app && journalctl -u isu-go.service -n 10000
@@ -36,3 +36,8 @@ alp:
 
 query:
 	sudo sh -c "pt-query-digest < /var/log/mysql/mysql-slow.log"
+
+pprof:
+	killall -USR1 app && \
+	sleep 1 && \
+	$(HOME)/go/bin/pprof -http=localhost:1080 webapp/golang/app webapp/golang/cpu.pprof
