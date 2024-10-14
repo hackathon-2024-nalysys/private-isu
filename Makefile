@@ -16,7 +16,7 @@ benchmarker/userdata/img: benchmarker/userdata/img.zip
 	unzip -qq -o img.zip
 
 bench:
-	ssh -i ~/.ssh/private-isu.pem ubuntu@$(WORKER) "sudo killall -USR2 app && sudo rm /var/log/nginx/access.log && sudo systemctl restart nginx" && \
+	ssh -i ~/.ssh/private-isu.pem ubuntu@$(WORKER) "sudo killall -USR2 app && sudo rm /var/log/nginx/access.log && sudo systemctl restart nginx && sudo rm -f /var/log/mysql/mysql-slow.log && sudo systemctl restart mysql" && \
 	./bench.sh
 
 connect:
@@ -33,3 +33,6 @@ reset:
 
 alp:
 	sudo cat /var/log/nginx/access.log | alp ltsv --sort sum -m "posts/[0-9]+,/@\w+,/image/\d+" -o count,method,uri,min,avg,max,sum | less
+
+query:
+	sudo sh -c "pt-query-digest < /var/log/mysql/mysql-slow.log"
