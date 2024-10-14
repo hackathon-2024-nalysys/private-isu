@@ -49,7 +49,7 @@ func StreamUserPage(qw422016 *qt422016.Writer, user types.User, postCount, comme
 
 `)
 //line templates/user.qtpl:11
-	qw422016.E().S(PostsTemplate(posts))
+	qw422016.N().S(PostsTemplate(posts))
 //line templates/user.qtpl:11
 	qw422016.N().S(`
 `)

@@ -62,7 +62,7 @@ func StreamContentPage(qw422016 *qt422016.Writer, csrfToken, flash string, posts
 
 `)
 //line templates/index.qtpl:24
-	qw422016.E().S(PostsTemplate(posts))
+	qw422016.N().S(PostsTemplate(posts))
 //line templates/index.qtpl:24
 	qw422016.N().S(`
 

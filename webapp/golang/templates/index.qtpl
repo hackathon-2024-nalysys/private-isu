@@ -21,7 +21,7 @@
   </form>
 </div>
 
-{%s PostsTemplate(posts) %}
+{%s= PostsTemplate(posts) %}
 
 <div id="isu-post-more">
   <button id="isu-post-more-btn">もっと見る</button>

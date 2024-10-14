@@ -32,7 +32,7 @@ func StreamPostsTemplate(qw422016 *qt422016.Writer, posts []types.Post) {
 		qw422016.N().S(`
   `)
 //line templates/posts.qtpl:6
-		qw422016.E().S(PostTemplate(post))
+		qw422016.N().S(PostTemplate(post))
 //line templates/posts.qtpl:6
 		qw422016.N().S(`
   `)

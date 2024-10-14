@@ -8,5 +8,5 @@
   <div>被コメント数 <span class="isu-commented-count">{%d commentedCount %}</span></div>
 </div>
 
-{%s PostsTemplate(posts) %}
+{%s= PostsTemplate(posts) %}
 {% endfunc %}
