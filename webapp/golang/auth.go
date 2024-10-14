@@ -11,6 +11,7 @@ import (
 	"github.com/catatsuy/private-isu/webapp/golang/types"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
+	"github.com/valyala/quicktemplate"
 )
 
 func tryLogin(accountName, password string) *types.User {
@@ -85,8 +86,8 @@ func getLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates.WriteLayout(w, func() string {
-		return templates.LoginPage(getFlash(w, r, "notice"))
+	templates.WriteLayout(w, func(qw *quicktemplate.Writer) {
+		templates.StreamLoginPage(qw, getFlash(w, r, "notice"))
 	},me)
 }
 
@@ -120,8 +121,8 @@ func getRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates.WriteLayout(w, func() string {
-		return templates.RegisterPage(getFlash(w, r, "notice"))
+	templates.WriteLayout(w, func(qw *quicktemplate.Writer) {
+		templates.StreamRegisterPage(qw, getFlash(w, r, "notice"))
 	},types.User{} )
 }
 

@@ -21,7 +21,7 @@ var (
 )
 
 //line templates/layout.qtpl:3
-func StreamLayout(qw422016 *qt422016.Writer, content func() string, me types.User) {
+func StreamLayout(qw422016 *qt422016.Writer, streamcontent func(w *qt422016.Writer), me types.User) {
 //line templates/layout.qtpl:3
 	qw422016.N().S(`
 <!DOCTYPE html>
@@ -80,7 +80,7 @@ func StreamLayout(qw422016 *qt422016.Writer, content func() string, me types.Use
 
       `)
 //line templates/layout.qtpl:30
-	qw422016.N().S(content())
+	streamcontent(qw422016)
 //line templates/layout.qtpl:30
 	qw422016.N().S(`
     </div>
@@ -93,22 +93,22 @@ func StreamLayout(qw422016 *qt422016.Writer, content func() string, me types.Use
 }
 
 //line templates/layout.qtpl:36
-func WriteLayout(qq422016 qtio422016.Writer, content func() string, me types.User) {
+func WriteLayout(qq422016 qtio422016.Writer, streamcontent func(w *qt422016.Writer), me types.User) {
 //line templates/layout.qtpl:36
 	qw422016 := qt422016.AcquireWriter(qq422016)
 //line templates/layout.qtpl:36
-	StreamLayout(qw422016, content, me)
+	StreamLayout(qw422016, streamcontent, me)
 //line templates/layout.qtpl:36
 	qt422016.ReleaseWriter(qw422016)
 //line templates/layout.qtpl:36
 }
 
 //line templates/layout.qtpl:36
-func Layout(content func() string, me types.User) string {
+func Layout(streamcontent func(w *qt422016.Writer), me types.User) string {
 //line templates/layout.qtpl:36
 	qb422016 := qt422016.AcquireByteBuffer()
 //line templates/layout.qtpl:36
-	WriteLayout(qb422016, content, me)
+	WriteLayout(qb422016, streamcontent, me)
 //line templates/layout.qtpl:36
 	qs422016 := string(qb422016.B)
 //line templates/layout.qtpl:36

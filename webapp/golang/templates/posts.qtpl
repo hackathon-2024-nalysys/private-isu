@@ -3,7 +3,7 @@
 {% func PostsTemplate(posts []types.Post) %}
 <div class="isu-posts">
   {% for _, post := range posts %}
-  {%s= PostTemplate(post) %}
+  {%= PostTemplate(post) %}
   {% endfor %}
 </div>
 {% endfunc %}

@@ -22,6 +22,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/valyala/quicktemplate"
 )
 
 var (
@@ -257,7 +258,7 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 	}
 
 	me := getSessionUser(r)
-	templates.WriteLayout(w, func() string { return templates.UserPage( user, postCount, commentCount, commentedCount, posts) }, me)
+	templates.WriteLayout(w, func(w *quicktemplate.Writer) { templates.StreamUserPage(w, user, postCount, commentCount, commentedCount, posts) }, me)
 }
 
 func getPosts(w http.ResponseWriter, r *http.Request) {
@@ -329,7 +330,7 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 
 	me := getSessionUser(r)
 
-	templates.WriteLayout(w, func() string { return templates.PostPage(p) }, me)
+	templates.WriteLayout(w, func(w *quicktemplate.Writer) { templates.StreamPostPage(w, p) }, me)
 }
 
 func postIndex(w http.ResponseWriter, r *http.Request) {
@@ -474,7 +475,7 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates.WriteLayout(w, func() string { return templates.AdminBannedPage(users, getCSRFToken((r))) }, me)
+	templates.WriteLayout(w, func(w *quicktemplate.Writer) { templates.StreamAdminBannedPage(w, users, getCSRFToken((r))) }, me)
 }
 
 func postAdminBanned(w http.ResponseWriter, r *http.Request) {

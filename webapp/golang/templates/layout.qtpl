@@ -1,6 +1,6 @@
 {% import "github.com/catatsuy/private-isu/webapp/golang/types" %}
 
-{% func Layout(content func() string, me types.User) %}
+{% func Layout(streamcontent func(w *qt422016.Writer), me types.User) %}
 <!DOCTYPE html>
 <html>
   <head>
@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      {%s= content() %}
+      {%= content() %}
     </div>
     <script src="/js/timeago.min.js"></script>
     <script src="/js/main.js"></script>

@@ -26,7 +26,7 @@ func StreamPostPage(qw422016 *qt422016.Writer, post types.Post) {
 	qw422016.N().S(`
 `)
 //line templates/post_id.qtpl:4
-	qw422016.N().S(PostTemplate(post))
+	StreamPostTemplate(qw422016, post)
 //line templates/post_id.qtpl:4
 	qw422016.N().S(`
 `)

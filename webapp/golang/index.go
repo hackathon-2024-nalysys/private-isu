@@ -6,6 +6,7 @@ import (
 
 	"github.com/catatsuy/private-isu/webapp/golang/templates"
 	"github.com/catatsuy/private-isu/webapp/golang/types"
+	"github.com/valyala/quicktemplate"
 )
 
 func getIndex(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +26,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates.WriteLayout(w, func() string {
-		return templates.ContentPage(getCSRFToken(r), getFlash(w, r, "notice"), posts)
+	templates.WriteLayout(w, func(qw *quicktemplate.Writer) {
+		templates.StreamContentPage(qw, getCSRFToken(r), getFlash(w, r, "notice"), posts)
 	}, me)
 }
