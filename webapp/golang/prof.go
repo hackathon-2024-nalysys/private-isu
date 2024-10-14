@@ -74,14 +74,16 @@ func dumpProfiles() {
 
 func registerProfSignalHandler() {
 	go func() {
-		r := <-report
-		p := profiles[r.Name]
-		if p == nil {
-			p = &Profile{}
-			profiles[r.Name] = p
+		for {
+			r := <-report
+			p := profiles[r.Name]
+			if p == nil {
+				p = &Profile{}
+				profiles[r.Name] = p
+			}
+			p.Count++
+			p.Time += r.Time
 		}
-		p.Count++
-		p.Time += r.Time
 	}()
 	// dump on USR1
 	go func() {
