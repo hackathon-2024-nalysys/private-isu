@@ -1,0 +1,5 @@
+{% import "github.com/catatsuy/private-isu/webapp/golang/types" %}
+
+{% func PostPage(post types.Post) %}
+{%s PostTemplate(post) %}
+{% endfunc %}

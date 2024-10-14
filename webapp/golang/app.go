@@ -1,9 +1,10 @@
 package main
 
+//go:generate go run github.com/valyala/quicktemplate/qtc -dir=templates
+
 import (
 	crand "crypto/rand"
 	"fmt"
-	"html/template"
 	"io"
 	"log"
 	"net/http"
@@ -16,6 +17,8 @@ import (
 
 	"github.com/bradfitz/gomemcache/memcache"
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
+	"github.com/catatsuy/private-isu/webapp/golang/templates"
+	"github.com/catatsuy/private-isu/webapp/golang/types"
 	"github.com/go-chi/chi/v5"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -31,37 +34,6 @@ const (
 	ISO8601Format = "2006-01-02T15:04:05-07:00"
 	UploadLimit   = 10 * 1024 * 1024 // 10mb
 )
-
-type User struct {
-	ID          int       `db:"id"`
-	AccountName string    `db:"account_name"`
-	Passhash    string    `db:"passhash"`
-	Authority   int       `db:"authority"`
-	DelFlg      int       `db:"del_flg"`
-	CreatedAt   time.Time `db:"created_at"`
-}
-
-type Post struct {
-	ID           int       `db:"id"`
-	UserID       int       `db:"user_id"`
-	Body         string    `db:"body"`
-	Mime         string    `db:"mime"`
-	CreatedAt    time.Time `db:"created_at"`
-	ImageURL 	   string
-	CommentCount int
-	Comments     []Comment
-	User         User
-	CSRFToken    string
-}
-
-type Comment struct {
-	ID        int       `db:"id"`
-	PostID    int       `db:"post_id"`
-	UserID    int       `db:"user_id"`
-	Comment   string    `db:"comment"`
-	CreatedAt time.Time `db:"created_at"`
-	User      User      `db:"user"`
-}
 
 func init() {
 	memdAddr := os.Getenv("ISUCONP_MEMCACHED_ADDRESS")
@@ -107,8 +79,8 @@ func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
 	}
 }
 
-func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, error) {
-	var posts []Post
+func makePosts(results []types.Post, csrfToken string, allComments bool) ([]types.Post, error) {
+	var posts []types.Post
 	var query string
 
 	if !allComments {
@@ -129,7 +101,7 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 		return nil, err
 	}
 
-	var comments []Comment
+	var comments []types.Comment
 	err = db.Select(&comments, sql, params...)
 
 	if err != nil {
@@ -137,7 +109,7 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 	}
 
 	// create map of posts
-	postMap := make(map[int]*Post)
+	postMap := make(map[int]*types.Post)
 	for i, p := range results {
 		postMap[p.ID] = &results[i]
 	}
@@ -164,12 +136,12 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 		return nil, err
 	}
 
-	var users []User
+	var users []types.User
 	err = db.Select(&users, sql, params...)
 	if err != nil {
 		return nil, err
 	}
-	userMap := make(map[int]*User)
+	userMap := make(map[int]*types.User)
 	for i, u := range users {
 		userMap[u.ID] = &users[i]
 	}
@@ -228,7 +200,7 @@ func getInitialize(w http.ResponseWriter, r *http.Request) {
 
 func getAccountName(w http.ResponseWriter, r *http.Request) {
 	accountName := r.PathValue("accountName")
-	user := User{}
+	user := types.User{}
 
 	err := db.Get(&user, "SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0", accountName)
 	if err != nil {
@@ -241,7 +213,7 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := []Post{}
+	results := []types.Post{}
 
 	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC", user.ID)
 	if err != nil {
@@ -285,27 +257,9 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 	}
 
 	me := getSessionUser(r)
-
-
-	template.Must(template.New("layout.html").ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("user.html"),
-		getTemplPath("posts.html"),
-		getTemplPath("post.html"),
-	)).Execute(w, struct {
-		Posts          []Post
-		User           User
-		PostCount      int
-		CommentCount   int
-		CommentedCount int
-		Me             User
-	}{posts, user, postCount, commentCount, commentedCount, me})
+	templates.WriteLayout(w, func() string { return templates.UserPage( user, postCount, commentCount, commentedCount, posts) }, me)
 }
 
-var getPostsTemplate = template.Must(template.New("posts.html").ParseFiles(
-	getTemplPath("posts.html"),
-	getTemplPath("post.html"),
-))
 func getPosts(w http.ResponseWriter, r *http.Request) {
 	m, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
@@ -324,7 +278,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := []Post{}
+	results := []types.Post{}
 	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC", t.Format(ISO8601Format))
 	if err != nil {
 		log.Print(err)
@@ -342,7 +296,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	getPostsTemplate.Execute(w, posts)
+	templates.WritePostsTemplate(w, posts)
 }
 
 func getPostsID(w http.ResponseWriter, r *http.Request) {
@@ -353,7 +307,7 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := []Post{}
+	results := []types.Post{}
 	err = db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
 	if err != nil {
 		log.Print(err)
@@ -375,15 +329,7 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 
 	me := getSessionUser(r)
 
-
-	template.Must(template.New("layout.html").ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("post_id.html"),
-		getTemplPath("post.html"),
-	)).Execute(w, struct {
-		Post Post
-		Me   User
-	}{p, me})
+	templates.WriteLayout(w, func() string { return templates.PostPage(p) }, me)
 }
 
 func postIndex(w http.ResponseWriter, r *http.Request) {
@@ -521,21 +467,14 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users := []User{}
+	users := []types.User{}
 	err := db.Select(&users, "SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC")
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
-	template.Must(template.ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("banned.html")),
-	).Execute(w, struct {
-		Users     []User
-		Me        User
-		CSRFToken string
-	}{users, me, getCSRFToken(r)})
+	templates.WriteLayout(w, func() string { return templates.AdminBannedPage(users, getCSRFToken((r))) }, me)
 }
 
 func postAdminBanned(w http.ResponseWriter, r *http.Request) {

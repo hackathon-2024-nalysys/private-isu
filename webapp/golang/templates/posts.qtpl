@@ -1,0 +1,9 @@
+{% import "github.com/catatsuy/private-isu/webapp/golang/types" %}
+
+{% func PostsTemplate(posts []types.Post) %}
+<div class="isu-posts">
+  {% for _, post := range posts %}
+  {%s PostTemplate(post) %}
+  {% endfor %}
+</div>
+{% endfunc %}

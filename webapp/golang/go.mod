@@ -15,4 +15,6 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/memcachier/mc/v3 v3.0.3 // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/quicktemplate v1.8.0 // indirect
 )

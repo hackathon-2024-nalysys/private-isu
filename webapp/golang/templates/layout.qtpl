@@ -1,0 +1,36 @@
+{% import "github.com/catatsuy/private-isu/webapp/golang/types" %}
+
+{% func Layout(content func() string, me types.User) %}
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Iscogram</title>
+    <link href="/css/style.css" media="screen" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="isu-title">
+          <h1><a href="/">Iscogram</a></h1>
+        </div>
+        <div class="isu-header-menu">
+          {% if me.ID == 0 %}
+          <div><a href="/login">ログイン</a></div>
+          {% else %}
+          <div><a href="/@{%s me.AccountName %}"><span class="isu-account-name">{%s me.AccountName %}</span>さん</a></div>
+          {% if me.Authority == 1 %}
+          <div><a href="/admin/banned">管理者用ページ</a></div>
+          {% endif %}
+          <div><a href="/logout">ログアウト</a></div>
+          {% endif %}
+        </div>
+      </div>
+
+      {%s= content() %}
+    </div>
+    <script src="/js/timeago.min.js"></script>
+    <script src="/js/main.js"></script>
+  </body>
+</html>
+{% endfunc %}

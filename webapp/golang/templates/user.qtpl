@@ -1,0 +1,12 @@
+{% import "github.com/catatsuy/private-isu/webapp/golang/types" %}
+
+{% func UserPage(user types.User, postCount, commentCount, commentedCount int, posts []types.Post) %}
+<div class="isu-user">
+  <div><span class="isu-user-account-name">{%s user.AccountName %}さん</span>のページ</div>
+  <div>投稿数 <span class="isu-post-count">{%d postCount %}</span></div>
+  <div>コメント数 <span class="isu-comment-count">{%d commentCount %}</span></div>
+  <div>被コメント数 <span class="isu-commented-count">{%d commentedCount %}</span></div>
+</div>
+
+{%s PostsTemplate(posts) %}
+{% endfunc %}

@@ -1,19 +1,20 @@
 package main
 
 import (
-	"html/template"
 	"log"
 	"net/http"
 	"os/exec"
 	"regexp"
 	"strings"
 
+	"github.com/catatsuy/private-isu/webapp/golang/templates"
+	"github.com/catatsuy/private-isu/webapp/golang/types"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 )
 
-func tryLogin(accountName, password string) *User {
-	u := User{}
+func tryLogin(accountName, password string) *types.User {
+	u := types.User{}
 	err := db.Get(&u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
 	if err != nil {
 		return nil
@@ -55,24 +56,24 @@ func getSession(r *http.Request) *sessions.Session {
 	return session
 }
 
-func getSessionUser(r *http.Request) User {
+func getSessionUser(r *http.Request) types.User {
 	session := getSession(r)
 	uid, ok := session.Values["user_id"]
 	if !ok || uid == nil {
-		return User{}
+		return types.User{}
 	}
 
-	u := User{}
+	u := types.User{}
 
 	err := db.Get(&u, "SELECT * FROM `users` WHERE `id` = ?", uid)
 	if err != nil {
-		return User{}
+		return types.User{}
 	}
 
 	return u
 }
 
-func isLogin(u User) bool {
+func isLogin(u types.User) bool {
 	return u.ID != 0
 }
 
@@ -84,13 +85,9 @@ func getLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template.Must(template.ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("login.html")),
-	).Execute(w, struct {
-		Me    User
-		Flash string
-	}{me, getFlash(w, r, "notice")})
+	templates.WriteLayout(w, func() string {
+		return templates.LoginPage(getFlash(w, r, "notice"))
+	},me)
 }
 
 func postLogin(w http.ResponseWriter, r *http.Request) {
@@ -123,13 +120,9 @@ func getRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template.Must(template.ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("register.html")),
-	).Execute(w, struct {
-		Me    User
-		Flash string
-	}{User{}, getFlash(w, r, "notice")})
+	templates.WriteLayout(w, func() string {
+		return templates.RegisterPage(getFlash(w, r, "notice"))
+	},types.User{} )
 }
 
 func postRegister(w http.ResponseWriter, r *http.Request) {

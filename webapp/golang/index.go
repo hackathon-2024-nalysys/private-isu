@@ -1,22 +1,17 @@
 package main
 
 import (
-	"html/template"
 	"log"
 	"net/http"
-)
 
-var indexTemplate = template.Must(template.New("layout.html").ParseFiles(
-	getTemplPath("layout.html"),
-	getTemplPath("index.html"),
-	getTemplPath("posts.html"),
-	getTemplPath("post.html"),
-))
+	"github.com/catatsuy/private-isu/webapp/golang/templates"
+	"github.com/catatsuy/private-isu/webapp/golang/types"
+)
 
 func getIndex(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
 
-	results := []Post{}
+	results := []types.Post{}
 
 	err := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC")
 	if err != nil {
@@ -30,10 +25,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	indexTemplate.Execute(w, struct {
-		Posts     []Post
-		Me        User
-		CSRFToken string
-		Flash     string
-	}{posts, me, getCSRFToken(r), getFlash(w, r, "notice")})
+	templates.WriteLayout(w, func() string {
+		return templates.ContentPage(getCSRFToken(r), getFlash(w, r, "notice"), posts)
+	}, me)
 }

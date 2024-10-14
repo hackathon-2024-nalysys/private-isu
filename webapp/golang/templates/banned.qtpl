@@ -1,0 +1,17 @@
+{% import "github.com/catatsuy/private-isu/webapp/golang/types" %}
+
+{% func AdminBannedPage(users []types.User, csrfToken string) %}
+<div>
+  <form method="post" action="/admin/banned">
+    {% for _, user := range users %}
+    <div>
+      <input type="checkbox" name="uid[]" id="uid_{%d user.ID %}" value="{%d user.ID %}" data-account-name="{%s user.AccountName %}"> <label for="uid_{%d user.ID %}">{%s user.AccountName %}</label>
+    </div>
+    {% endfor %}
+    <div class="form-submit">
+      <input type="hidden" name="csrf_token" value="{%s csrfToken %}">
+      <input type="submit" name="submit" value="submit">
+    </div>
+  </form>
+</div>
+{% endfunc %}
