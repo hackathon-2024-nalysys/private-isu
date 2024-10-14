@@ -5,28 +5,32 @@ import (
 	"os"
 	"os/signal"
 	"sort"
+	"sync"
 	"syscall"
 	"time"
 )
 
 type Profile struct {
 	LastStart int64
-	Time 	int64
-	Count 	int64
+	Time      int64
+	Count     int64
 }
 
 // ここにためる
-var profiles = map[string]*Profile{}
+// var profiles = map[string]*Profile{}
+var profiles = sync.Map{}
 
 // はかりはじめる
 func startTime(name string) {
-	p := profiles[name]
-
-	if p == nil {
+	pany, ok := profiles.Load(name)
+	var p *Profile
+	if !ok {
 		p = &Profile{}
-		profiles[name] = p
+		profiles.Store(name, p)
+	} else {
+		p = pany.(*Profile)
 	}
-	 
+
 	println("start", name)
 	// get current time
 	p.LastStart = time.Now().UnixNano()
@@ -34,11 +38,13 @@ func startTime(name string) {
 
 // はかりおわる
 func endTime(name string) {
-	p := profiles[name]
-
-	if p == nil {
+	pany, ok := profiles.Load(name)
+	var p *Profile
+	if !ok {
 		p = &Profile{}
-		profiles[name] = p
+		profiles.Store(name, p)
+	} else {
+		p = pany.(*Profile)
 	}
 
 	// get current time
@@ -48,29 +54,33 @@ func endTime(name string) {
 
 func dumpProfiles() {
 	println("---DUMP PROFILE---")
-		// convert to per count time and name pair
-		ptpair := []struct {
+	// convert to per count time and name pair
+	ptpair := []struct {
+		Name string
+		Time int64
+	}{}
+	profiles.Range(func(name any, pany any) bool {
+		p := pany.(*Profile)
+		nameStr := name.(string)
+		ptpair = append(ptpair, struct {
 			Name string
 			Time int64
-		}{}
-		for name, p := range profiles {
-			ptpair = append(ptpair, struct {
-				Name string
-				Time int64
-			}{name, p.Time / p.Count})
-		}
-		// sort by time using sort.Slice
-		sort.Slice(ptpair, func(i, j int) bool {
-			return ptpair[i].Time > ptpair[j].Time
-		})
+		}{nameStr, p.Time / p.Count})
+		return true
+	})
+	// sort by time using sort.Slice
+	sort.Slice(ptpair, func(i, j int) bool {
+		return ptpair[i].Time > ptpair[j].Time
+	})
 
-		// dump ptpair with profiles
-		for _, pt := range ptpair {
-			p := profiles[pt.Name]
-			perTime := time.Duration(pt.Time).String()
-			totalTime := time.Duration(p.Time).String()
-			println(pt.Name, perTime, totalTime, p.Count)
-		}
+	// dump ptpair with profiles
+	for _, pt := range ptpair {
+		pany, _ := profiles.Load(pt.Name)
+		p := pany.(*Profile)
+		perTime := time.Duration(pt.Time).String()
+		totalTime := time.Duration(p.Time).String()
+		println(pt.Name, perTime, totalTime, p.Count)
+	}
 }
 
 func registerProfSignalHandler() {
@@ -89,17 +99,16 @@ func registerProfSignalHandler() {
 		signal.Notify(c, syscall.SIGUSR2)
 		for {
 			<-c
-			profiles = map[string]*Profile{}
+			profiles = sync.Map{}
 		}
 	}()
 }
 
-
 // contextに値をセットするmiddlewareの例
 func ProfMiddleware(next http.Handler) http.Handler {
-  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startTime(r.URL.Path)
-    next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r)
 		endTime(r.URL.Path)
-  })
+	})
 }
