@@ -80,7 +80,7 @@ func StreamLayout(qw422016 *qt422016.Writer, content func() string, me types.Use
 
       `)
 //line templates/layout.qtpl:30
-	qw422016.N().S(content())
+	qw422016.E().S(content())
 //line templates/layout.qtpl:30
 	qw422016.N().S(`
     </div>
