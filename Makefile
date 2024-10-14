@@ -24,3 +24,8 @@ connect:
 proxy:
 	ssh -i ~/.ssh/private-isu.pem -L 3306:localhost:3306 -L 11211:localhost:11211 ubuntu@$(WORKER)
 
+dump:
+	killall -USR1 app && journalctl -u isu-go.service -n 10000
+
+reset:
+	killall -USR2 app 

@@ -31,7 +31,7 @@ func startTime(name string) {
 		p = pany.(*Profile)
 	}
 
-	println("start", name)
+	// println("start", name)
 	// get current time
 	p.LastStart = time.Now().UnixNano()
 }
@@ -107,8 +107,8 @@ func registerProfSignalHandler() {
 // contextに値をセットするmiddlewareの例
 func ProfMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		startTime(r.URL.Path)
+		startTime(r.URL.String())
 		next.ServeHTTP(w, r)
-		endTime(r.URL.Path)
+		endTime(r.URL.String())
 	})
 }
