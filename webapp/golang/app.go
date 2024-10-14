@@ -26,8 +26,9 @@ import (
 )
 
 var (
-	db    *sqlx.DB
-	store *gsm.MemcacheStore
+	db             *sqlx.DB
+	store          *gsm.MemcacheStore
+	memcacheClient *memcache.Client
 )
 
 const (
@@ -41,7 +42,7 @@ func init() {
 	if memdAddr == "" {
 		memdAddr = "localhost:11211"
 	}
-	memcacheClient := memcache.New(memdAddr)
+	memcacheClient = memcache.New(memdAddr)
 	store = gsm.NewMemcacheStore(memcacheClient, "iscogram_", []byte("sendagaya"))
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
@@ -84,44 +85,63 @@ func makePosts(results []types.Post, csrfToken string, allComments bool) ([]type
 	var posts []types.Post
 	var query string
 
-	if !allComments {
-		query = "SELECT c.id, c.post_id, c.user_id, c.comment, c.created_at, u.id AS `user.id`, u.account_name AS `user.account_name`, u.del_flg AS `user.del_flg`, u.created_at AS `user.created_at`, u.authority AS `user.authority`" +
-			" FROM (SELECT id, post_id, user_id, comment, created_at, ROW_NUMBER() OVER (PARTITION BY c.post_id ORDER BY c.created_at DESC) as rn FROM comments c WHERE c.post_id IN (?)) AS c JOIN users u ON c.user_id = u.id WHERE c.rn <= 3"
-	} else {
-		query = "SELECT c.id, c.post_id, c.user_id, c.comment, c.created_at, u.id AS `user.id`, u.account_name AS `user.account_name`, u.del_flg AS `user.del_flg`, u.created_at AS `user.created_at`, u.authority AS `user.authority`" +
-			" FROM comments c JOIN users u ON c.user_id = u.id WHERE c.post_id IN (?)"
-	}
-
 	postIDs := make([]int, len(results))
 	for i, p := range results {
 		postIDs[i] = p.ID
 	}
-
-	sql, params, err := sqlx.In(query, postIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	var comments []types.Comment
-	err = db.Select(&comments, sql, params...)
-
-	if err != nil {
-		return nil, err
-	}
-
 	// create map of posts
 	postMap := make(map[int]*types.Post)
 	for i, p := range results {
 		postMap[p.ID] = &results[i]
 	}
 
-	for _, c := range comments {
-		postMap[c.PostID].Comments = append(postMap[c.PostID].Comments, c)
+	commentsMap, commentMissedPostIDs, err := getCommentsForPosts(postIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(commentMissedPostIDs) > 0 {
+		var comments []types.Comment
+
+		query = "SELECT c.id, c.post_id, c.user_id, c.comment, c.created_at, u.id AS `user.id`, u.account_name AS `user.account_name`, u.del_flg AS `user.del_flg`, u.created_at AS `user.created_at`, u.authority AS `user.authority`" +
+			" FROM comments c JOIN users u ON c.user_id = u.id WHERE c.post_id IN (?)"
+
+		sql, params, err := sqlx.In(query, postIDs)
+		if err != nil {
+			return nil, err
+		}
+
+		err = db.Select(&comments, sql, params...)
+
+		if err != nil {
+			return nil, err
+		}
+
+		// insert into commentsMap
+		for _, c := range comments {
+			commentsMap[c.PostID] = append(commentsMap[c.PostID], c)
+		}
+
+		// cache comments
+		for _, pid := range commentMissedPostIDs {
+			cacheCommentsForPosts(pid, commentsMap[pid])
+		}
+	}
+
+	for pid, c := range commentsMap {
+		postMap[pid].Comments = c
 	}
 
 	for _, p := range postMap {
 		p.CSRFToken = csrfToken
 		p.ImageURL = imageURL(p.Mime, p.ID)
+		p.CommentCount = len(p.Comments)
+
+		// limit
+		if !allComments && len(p.Comments) > 3 {
+			p.Comments = p.Comments[:3]
+		}
+
 		// reverse
 		for i, j := 0, len(p.Comments)-1; i < j; i, j = i+1, j-1 {
 			p.Comments[i], p.Comments[j] = p.Comments[j], p.Comments[i]
@@ -131,24 +151,36 @@ func makePosts(results []types.Post, csrfToken string, allComments bool) ([]type
 	for i, p := range results {
 		userIds[i] = p.UserID
 	}
-	userQuery := "SELECT * FROM `users` WHERE `id` IN (?)"
-	sql, params, err = sqlx.In(userQuery, userIds)
+
+	userMap, userMissedIDs, err := getUsers(userIds)
 	if err != nil {
 		return nil, err
 	}
 
-	var users []types.User
-	err = db.Select(&users, sql, params...)
-	if err != nil {
-		return nil, err
-	}
-	userMap := make(map[int]*types.User)
-	for i, u := range users {
-		userMap[u.ID] = &users[i]
+	if len(userMissedIDs) > 0 {
+		userQuery := "SELECT * FROM `users` WHERE `id` IN (?)"
+		sql, params, err := sqlx.In(userQuery, userIds)
+		if err != nil {
+			return nil, err
+		}
+
+		var users []types.User
+		err = db.Select(&users, sql, params...)
+		if err != nil {
+			return nil, err
+		}
+		for i, u := range users {
+			userMap[u.ID] = users[i]
+		}
+
+		// cache users
+		if err := cacheUsers(users); err != nil {
+			return nil, err
+		}
 	}
 
 	for _, p := range postMap {
-		p.User = *userMap[p.UserID]
+		p.User = userMap[p.UserID]
 	}
 
 	for _, p := range results {
@@ -451,6 +483,11 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := invalidateCommentsForPost(postID); err != nil {
+		log.Print(err)
+		return
+	}
+
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
 }
 
@@ -503,6 +540,19 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 
 	for _, id := range r.Form["uid[]"] {
 		db.Exec(query, 1, id)
+	}
+
+	// invalidate user cache
+	for _, id := range r.Form["uid[]"] {
+		idint, err := strconv.Atoi(id)
+		if err != nil {
+			continue
+		}
+
+		if err := invalidateUser(idint); err != nil {
+			log.Print(err)
+			return
+		}
 	}
 
 	http.Redirect(w, r, "/admin/banned", http.StatusFound)
