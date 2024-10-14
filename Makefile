@@ -1,4 +1,4 @@
-.PHONY: init bench connect proxy
+.PHONY: init bench connect proxy alp
 init: webapp/sql/dump.sql.bz2 benchmarker/userdata/img
 
 WORKER := isu-worker.grainrigi.net
@@ -30,3 +30,6 @@ dump:
 
 reset:
 	killall -USR2 app 
+
+alp:
+	sudo cat /var/log/nginx/access.log | alp ltsv --sort sum -m "posts/[0-9]+,/@\w+,/image/\d+" -o count,method,uri,min,avg,max,sum | less
