@@ -31,7 +31,7 @@ func startTime(name string) {
 		p = pany.(*Profile)
 	}
 
-	// println("start", name)
+	println("start", name)
 	// get current time
 	p.LastStart = time.Now().UnixNano()
 }
