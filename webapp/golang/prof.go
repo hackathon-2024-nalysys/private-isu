@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"sort"
 	"sync"
 	"syscall"
@@ -90,6 +91,7 @@ func registerProfSignalHandler() {
 		signal.Notify(c, syscall.SIGUSR1)
 		for {
 			<-c
+			stopProfile()
 			dumpProfiles()
 		}
 	}()
@@ -100,6 +102,7 @@ func registerProfSignalHandler() {
 		for {
 			<-c
 			profiles = sync.Map{}
+			startProfile()
 		}
 	}()
 }
@@ -111,4 +114,20 @@ func ProfMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 		endTime(r.URL.RequestURI())
 	})
+}
+
+func startProfile() error {
+	f, err := os.Create("cpu.pprof")
+	if err != nil {
+			return err
+	}
+
+	if err := pprof.StartCPUProfile(f); err != nil {
+			return err
+	}
+	return nil
+}
+
+func stopProfile() {
+	pprof.StopCPUProfile()
 }

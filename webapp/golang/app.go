@@ -303,6 +303,12 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 	}{posts, user, postCount, commentCount, commentedCount, me})
 }
 
+var getPostsTemplate = template.Must(template.New("posts.html").Funcs(template.FuncMap{
+	"imageURL": imageURL,
+}).ParseFiles(
+	getTemplPath("posts.html"),
+	getTemplPath("post.html"),
+))
 func getPosts(w http.ResponseWriter, r *http.Request) {
 	m, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
@@ -322,17 +328,13 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	startTime("POSTS: postsAll")
 	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC", t.Format(ISO8601Format))
-	endTime("POSTS: postsAll")
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
-	startTime("POSTS: makePosts")
 	posts, err := makePosts(results, getCSRFToken(r), false)
-	endTime("POSTS: makePosts")
 	if err != nil {
 		log.Print(err)
 		return
@@ -343,16 +345,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmap := template.FuncMap{
-		"imageURL": imageURL,
-	}
-
-	startTime("POSTS: template")
-	template.Must(template.New("posts.html").Funcs(fmap).ParseFiles(
-		getTemplPath("posts.html"),
-		getTemplPath("post.html"),
-	)).Execute(w, posts)
-	endTime("POSTS: template")
+	getPostsTemplate.Execute(w, posts)
 }
 
 func getPostsID(w http.ResponseWriter, r *http.Request) {
@@ -584,6 +577,11 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	err :=  startProfile()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
 		host = "localhost"
@@ -592,7 +590,7 @@ func main() {
 	if port == "" {
 		port = "3306"
 	}
-	_, err := strconv.Atoi(port)
+	_, err = strconv.Atoi(port)
 	if err != nil {
 		log.Fatalf("Failed to read DB port number from an environment variable ISUCONP_DB_PORT.\nError: %s", err.Error())
 	}
