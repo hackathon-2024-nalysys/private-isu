@@ -6,9 +6,7 @@ import (
 	"net/http"
 )
 
-var indexTemplate = template.Must(template.New("layout.html").Funcs(template.FuncMap{
-	"imageURL": imageURL,
-}).ParseFiles(
+var indexTemplate = template.Must(template.New("layout.html").ParseFiles(
 	getTemplPath("layout.html"),
 	getTemplPath("index.html"),
 	getTemplPath("posts.html"),

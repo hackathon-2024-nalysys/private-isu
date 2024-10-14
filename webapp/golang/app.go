@@ -47,6 +47,7 @@ type Post struct {
 	Body         string    `db:"body"`
 	Mime         string    `db:"mime"`
 	CreatedAt    time.Time `db:"created_at"`
+	ImageURL 	   string
 	CommentCount int
 	Comments     []Comment
 	User         User
@@ -147,6 +148,7 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 	for _, p := range postMap {
 		p.CSRFToken = csrfToken
+		p.ImageURL = imageURL(p.Mime, p.ID)
 		// reverse
 		for i, j := 0, len(p.Comments)-1; i < j; i, j = i+1, j-1 {
 			p.Comments[i], p.Comments[j] = p.Comments[j], p.Comments[i]
@@ -284,11 +286,8 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 
 	me := getSessionUser(r)
 
-	fmap := template.FuncMap{
-		"imageURL": imageURL,
-	}
 
-	template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
+	template.Must(template.New("layout.html").ParseFiles(
 		getTemplPath("layout.html"),
 		getTemplPath("user.html"),
 		getTemplPath("posts.html"),
@@ -303,9 +302,7 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 	}{posts, user, postCount, commentCount, commentedCount, me})
 }
 
-var getPostsTemplate = template.Must(template.New("posts.html").Funcs(template.FuncMap{
-	"imageURL": imageURL,
-}).ParseFiles(
+var getPostsTemplate = template.Must(template.New("posts.html").ParseFiles(
 	getTemplPath("posts.html"),
 	getTemplPath("post.html"),
 ))
@@ -378,11 +375,8 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 
 	me := getSessionUser(r)
 
-	fmap := template.FuncMap{
-		"imageURL": imageURL,
-	}
 
-	template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
+	template.Must(template.New("layout.html").ParseFiles(
 		getTemplPath("layout.html"),
 		getTemplPath("post_id.html"),
 		getTemplPath("post.html"),
