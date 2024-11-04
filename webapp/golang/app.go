@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -577,9 +578,6 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	host := os.Getenv("ISUCONP_DB_HOST")
-	if host == "" {
-		host = "localhost"
-	}
 	port := os.Getenv("ISUCONP_DB_PORT")
 	if port == "" {
 		port = "3306"
@@ -587,6 +585,11 @@ func main() {
 	_, err := strconv.Atoi(port)
 	if err != nil {
 		log.Fatalf("Failed to read DB port number from an environment variable ISUCONP_DB_PORT.\nError: %s", err.Error())
+	}
+	if host == "" {
+		host = "unix(/var/run/mysqld/mysqld.sock)"
+	} else {
+		host = fmt.Sprintf("tcp(%s:%s)", host, port)
 	}
 	user := os.Getenv("ISUCONP_DB_USER")
 	if user == "" {
@@ -599,11 +602,10 @@ func main() {
 	}
 
 	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=Local&interpolateParams=true",
+		"%s:%s@%s/%s?charset=utf8mb4&parseTime=true&loc=Local&interpolateParams=true",
 		user,
 		password,
 		host,
-		port,
 		dbname,
 	)
 
@@ -637,5 +639,16 @@ func main() {
 		http.FileServer(http.Dir("../public")).ServeHTTP(w, r)
 	})
 
-	log.Fatal(http.ListenAndServe(":8080", r))
+	socketFile := "/tmp/go.sock"
+	os.Remove(socketFile)
+	l, err := net.Listen("unix", socketFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = os.Chmod(socketFile, 0777)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Fatal(http.Serve(l, r))
 }
