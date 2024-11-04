@@ -405,7 +405,27 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	filedata, err := io.ReadAll(file)
+	var filedata []byte
+
+	if r.ContentLength > 0 {
+		log.Printf("ContentLength: %d", r.ContentLength)
+		filedata = make([]byte, r.ContentLength)
+		var n int
+		read := 0
+		for {
+			n, err = file.Read(filedata[read:])
+			if err != nil {
+				break
+			}
+			read += n
+		}
+		if err == io.EOF {
+			err = nil
+		}
+		filedata = filedata[:read]
+	} else {
+		filedata, err = io.ReadAll(file)
+	}
 	if err != nil {
 		log.Print(err)
 		return
