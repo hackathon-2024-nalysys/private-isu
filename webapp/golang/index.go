@@ -27,6 +27,6 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templates.WriteLayout(w, func(qw *quicktemplate.Writer) {
-		templates.StreamContentPage(qw, getCSRFToken(r), getFlash(w, r, "notice"), posts)
+		templates.StreamContentPage(qw, getCSRFToken(r), getFlash(w, r), posts)
 	}, me)
 }

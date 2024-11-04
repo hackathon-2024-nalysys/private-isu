@@ -31,3 +31,10 @@ message User {
   int32 DelFlg = 4;
   google.protobuf.Timestamp CreatedAt = 5;
 }
+
+message Session {
+  string SessionID = 1;
+  int32 UserID = 2;
+  string CsrfToken = 3;
+  string Notice = 4;
+}

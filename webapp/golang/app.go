@@ -68,16 +68,16 @@ func escapeshellarg(arg string) string {
 	return "'" + strings.Replace(arg, "'", "'\\''", -1) + "'"
 }
 
-func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
+func getFlash(w http.ResponseWriter, r *http.Request) string {
 	session := getSession(r)
-	value, ok := session.Values[key]
+	value := session.Session.Notice
 
-	if !ok || value == nil {
+	if value == "" {
 		return ""
 	} else {
-		delete(session.Values, key)
-		session.Save(r, w)
-		return value.(string)
+		session.Session.Notice = ""
+		saveSession(w, session)
+		return value
 	}
 }
 
@@ -206,11 +206,8 @@ func imageURL(mime string, id int) string {
 
 func getCSRFToken(r *http.Request) string {
 	session := getSession(r)
-	csrfToken, ok := session.Values["csrf_token"]
-	if !ok {
-		return ""
-	}
-	return csrfToken.(string)
+	csrfToken := session.Session.CsrfToken
+	return csrfToken
 }
 
 func secureRandomStr(b int) string {
@@ -381,8 +378,8 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		session := getSession(r)
-		session.Values["notice"] = "画像が必須です"
-		session.Save(r, w)
+		session.Session.Notice = "画像が必須です"
+		saveSession(w, session)
 
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
@@ -400,8 +397,8 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 			mime = "image/gif"
 		} else {
 			session := getSession(r)
-			session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
-			session.Save(r, w)
+			session.Session.Notice = "投稿できる画像形式はjpgとpngとgifだけです"
+			saveSession(w, session)
 
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
@@ -416,8 +413,8 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 
 	if len(filedata) > UploadLimit {
 		session := getSession(r)
-		session.Values["notice"] = "ファイルサイズが大きすぎます"
-		session.Save(r, w)
+		session.Session.Notice = "ファイルサイズが大きすぎます"
+		saveSession(w, session)
 
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
