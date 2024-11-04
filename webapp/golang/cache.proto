@@ -1,0 +1,33 @@
+// protoのバージョンの宣言
+syntax = "proto3";
+
+// protoファイルから自動生成させるGoのコードの置き先
+// (詳細は4章にて)
+option go_package = "./grpc";
+
+// packageの宣言
+package main;
+
+import "google/protobuf/timestamp.proto";
+
+// 型の定義
+message Comments {
+  repeated Comment comments = 1;
+}
+
+message Comment {
+	int32 ID = 1;
+  int32 PostID = 2;
+  int32 UserID = 3;
+  string Comment = 4;
+  google.protobuf.Timestamp CreatedAt = 5;
+  User user = 6;
+}
+
+message User {
+  int32 ID = 1;
+  string AccountName = 2;
+  int32 Authority = 3;
+  int32 DelFlg = 4;
+  google.protobuf.Timestamp CreatedAt = 5;
+}
